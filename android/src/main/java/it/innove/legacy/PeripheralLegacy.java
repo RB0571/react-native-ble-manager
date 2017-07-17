@@ -1,4 +1,4 @@
-package it.innove;
+package it.innove.legacy;
 
 import android.app.Activity;
 import android.bluetooth.BluetoothDevice;
@@ -26,6 +26,10 @@ import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
 import java.util.UUID;
+
+import it.innove.BleManager;
+import it.innove.Helper;
+import it.innove.UUIDHelper;
 
 /**
  * Peripheral wraps the BluetoothDevice and provides methods to convert to JSON.

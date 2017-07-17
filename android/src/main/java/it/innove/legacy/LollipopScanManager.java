@@ -1,4 +1,4 @@
-package it.innove;
+package it.innove.legacy;
 
 
 import android.annotation.TargetApi;
@@ -8,14 +8,14 @@ import android.bluetooth.le.ScanFilter;
 import android.bluetooth.le.ScanResult;
 import android.bluetooth.le.ScanSettings;
 import android.os.Build;
-import android.os.Bundle;
 import android.os.ParcelUuid;
 import android.util.Log;
 import com.facebook.react.bridge.*;
-import org.json.JSONException;
 
 import java.util.ArrayList;
 import java.util.List;
+
+import it.innove.UUIDHelper;
 
 import static com.facebook.react.bridge.UiThreadUtil.runOnUiThread;
 

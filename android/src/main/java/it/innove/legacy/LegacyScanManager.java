@@ -1,4 +1,4 @@
-package it.innove;
+package it.innove.legacy;
 
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;

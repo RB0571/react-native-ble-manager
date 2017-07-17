@@ -1,4 +1,4 @@
-package it.innove;
+package it.innove.legacy;
 
 import android.app.Activity;
 import android.bluetooth.BluetoothAdapter;
@@ -10,15 +10,14 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.os.Build;
-import android.os.Bundle;
 import android.support.annotation.Nullable;
-import android.util.Base64;
 import android.util.Log;
 import com.facebook.react.bridge.*;
 import com.facebook.react.modules.core.RCTNativeAppEventEmitter;
-import org.json.JSONException;
 
 import java.util.*;
+
+import it.innove.UUIDHelper;
 
 import static android.app.Activity.RESULT_OK;
 import static android.os.Build.VERSION_CODES.LOLLIPOP;
