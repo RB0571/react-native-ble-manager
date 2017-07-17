@@ -9,7 +9,7 @@ import static com.facebook.react.bridge.UiThreadUtil.runOnUiThread;
 
 public class LegacyScanManager extends ScanManager {
 
-	public LegacyScanManager(ReactApplicationContext reactContext, BleManager bleManager) {
+	public LegacyScanManager(ReactApplicationContext reactContext, BleManagerLegacy bleManager) {
 		super(reactContext, bleManager);
 	}
 
@@ -34,10 +34,10 @@ public class LegacyScanManager extends ScanManager {
 						public void run() {
 							Log.i(bleManager.LOG_TAG, "DiscoverPeripheral: " + device.getName());
 							String address = device.getAddress();
-							Peripheral peripheral;
+							PeripheralLegacy peripheral;
 
 							if (!bleManager.peripherals.containsKey(address)) {
-								peripheral = new Peripheral(device, rssi, scanRecord, reactContext);
+								peripheral = new PeripheralLegacy(device, rssi, scanRecord, reactContext);
 								bleManager.peripherals.put(device.getAddress(), peripheral);
 							} else {
 								peripheral = bleManager.peripherals.get(address);

@@ -16,10 +16,10 @@ public abstract class ScanManager {
 	protected BluetoothAdapter bluetoothAdapter;
 	protected Context context;
 	protected ReactContext reactContext;
-	protected BleManager bleManager;
+	protected BleManagerLegacy bleManager;
 	protected AtomicInteger scanSessionId = new AtomicInteger();
 
-	public ScanManager(ReactApplicationContext reactContext, BleManager bleManager) {
+	public ScanManager(ReactApplicationContext reactContext, BleManagerLegacy bleManager) {
 		context = reactContext;
 		this.reactContext = reactContext;
 		this.bleManager = bleManager;
