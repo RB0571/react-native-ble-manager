@@ -1,25 +1,16 @@
 package it.innove;
 
-import android.annotation.TargetApi;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothGattCharacteristic;
 import android.bluetooth.BluetoothManager;
-import android.bluetooth.le.ScanCallback;
-import android.bluetooth.le.ScanFilter;
-import android.bluetooth.le.ScanResult;
-import android.bluetooth.le.ScanSettings;
 import android.content.Context;
 import android.os.Binder;
 import android.os.Build;
-import android.os.ParcelUuid;
 import android.util.Log;
 
 import com.facebook.react.bridge.ReactApplicationContext;
 import com.facebook.react.bridge.ReadableArray;
-import com.facebook.react.bridge.ReadableMap;
-
-import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -32,19 +23,22 @@ import static android.os.Build.VERSION_CODES.LOLLIPOP;
  * Created by admin on 2017/7/11.
  */
 
-@TargetApi(Build.VERSION_CODES.LOLLIPOP)
 public class BleBinder extends Binder {
     private static final String TAG = "BleBinder";
     private BluetoothAdapter bluetoothAdapter;
-    private ScanManager scanManager;
+    private ScanerManager scanerManager;
     private ReactApplicationContext reactContext;
     private Context context;
     // key is the MAC Address
     public Map<String, Peripheral> peripherals = new LinkedHashMap<>();
 
-    public void setReactContext(ReactApplicationContext context){
-        reactContext = context;
+    public BleBinder(Context context){
         this.context = context;
+        if(Build.VERSION.SDK_INT >= LOLLIPOP){
+            scanerManager = new ScanerLollipop(getBluetoothAdapter(),scaner);
+        }else{
+            scanerManager = new ScanerLegacy(getBluetoothAdapter(),scaner);
+        }
     }
     public BluetoothAdapter getBluetoothAdapter() {
         if (bluetoothAdapter == null) {
@@ -54,12 +48,6 @@ public class BleBinder extends Binder {
         return bluetoothAdapter;
     }
 
-    /**
-     * 初始化数据
-     */
-    public void init(){
-
-    }
 
     /**
      * 检查蓝牙开关状态
@@ -87,7 +75,22 @@ public class BleBinder extends Binder {
 
     private CallBackManager.Scaner scanerCallback;
     private AtomicInteger scanSessionID = new AtomicInteger();
-
+    private ScanerManager.IScaner scaner = new ScanerManager.IScaner() {
+        @Override
+        public void onResult(BluetoothDevice device, int rssi, byte[] scanRecord) {
+            String address = device.getAddress();
+            Peripheral peripheral;
+            if (!peripherals.containsKey(address)) {
+                peripheral = new Peripheral(device, rssi, scanRecord);
+                peripherals.put(device.getAddress(), peripheral);
+            } else {
+                peripheral = peripherals.get(address);
+                peripheral.updateRssi(rssi);
+                peripheral.updateData(scanRecord);
+            }
+            scanerCallback.onFinded(peripheral);
+        }
+    };
     /**
      * 扫描蓝牙设备
      * @param serviceUUIDs
@@ -95,7 +98,7 @@ public class BleBinder extends Binder {
      * @param options
      * @param scanerCallback
      */
-    public void startScan(ReadableArray serviceUUIDs, final int scanSeconds, ReadableMap options, final CallBackManager.Scaner scanerCallback){
+    public void startScan(List<String> serviceUUIDs, final int scanSeconds, Map<String,Integer> options, final CallBackManager.Scaner scanerCallback){
         this.scanerCallback = scanerCallback;
         if (getBluetoothAdapter() == null) {
             scanerCallback.onResult("No bluetooth support");
@@ -111,12 +114,7 @@ public class BleBinder extends Binder {
                 iterator.remove();
             }
         }
-
-        if(Build.VERSION.SDK_INT >= LOLLIPOP){
-            scanLollipop(serviceUUIDs,scanSeconds,options);
-        }else{
-            scanLegacy();
-        }
+        scanerManager.startScan(serviceUUIDs,options);
         if(scanSeconds>0){
             new Thread(new Runnable() {
                 private int currentSessionID = scanSessionID.incrementAndGet();
@@ -125,7 +123,7 @@ public class BleBinder extends Binder {
                     if(currentSessionID == scanSessionID.intValue()){
                         try{
                             Thread.sleep(scanSeconds*1000);
-                            stopScan(scanerCallback);
+                            scanerManager.stopScan();
                         }catch (InterruptedException e){
                             e.printStackTrace();
                         }
@@ -135,100 +133,22 @@ public class BleBinder extends Binder {
         }
     }
 
-    /**
-     * android 5.0 前 扫描回调接口
-     */
-    private BluetoothAdapter.LeScanCallback leScanCallback = new BluetoothAdapter.LeScanCallback() {
-        @Override
-        public void onLeScan(BluetoothDevice device, final int rssi, final byte[] scanRecord) {
-            String address = device.getAddress();
-            Peripheral peripheral;
-            if (!peripherals.containsKey(address)) {
-                peripheral = new Peripheral(device, rssi, scanRecord);
-                peripherals.put(device.getAddress(), peripheral);
-            } else {
-                peripheral = peripherals.get(address);
-                peripheral.updateRssi(rssi);
-                peripheral.updateData(scanRecord);
-            }
-            scanerCallback.onFinded(peripheral);
-        }
-    };
 
-    /**
-     * android 5.0 前 扫描蓝牙设备
-     */
-    private void scanLegacy(){
-        bluetoothAdapter.startLeScan(leScanCallback);
-    }
-
-    /**
-     * android 5.0 后 扫描回调接口
-     */
-    private ScanCallback scanCallback = new ScanCallback() {
-        @Override
-        public void onScanResult(int callbackType, ScanResult result) {
-            String address = result.getDevice().getAddress();
-            Peripheral peripheral = null;
-
-            if (!peripherals.containsKey(address)) {
-                peripheral = new Peripheral(result.getDevice(), result.getRssi(), result.getScanRecord().getBytes());
-                peripherals.put(address, peripheral);
-            } else {
-                peripheral = peripherals.get(address);
-                peripheral.updateRssi(result.getRssi());
-                peripheral.updateData(result.getScanRecord().getBytes());
-            }
-            scanerCallback.onFinded(peripheral);
-        }
-    };
-
-    /**
-     * android 5.0 后 扫描蓝牙设备
-     * @param serviceUUIDs
-     * @param scanSeconds
-     * @param options
-     */
-    private void scanLollipop(ReadableArray serviceUUIDs, final int scanSeconds, ReadableMap options) {
-        ScanSettings.Builder scanSettingsBuilder = new ScanSettings.Builder();
-        List<ScanFilter> filters = new ArrayList<>();
-
-        scanSettingsBuilder.setScanMode(options.getInt("scanMode"));
-
-        if(Build.VERSION.SDK_INT >= Build.VERSION_CODES.M){
-            scanSettingsBuilder.setNumOfMatches(options.getInt("numberOfMatches"));
-            scanSettingsBuilder.setMatchMode(options.getInt("matchMode"));
-        }
-
-        if (serviceUUIDs.size() > 0) {
-            for(int i = 0; i < serviceUUIDs.size(); i++){
-                ScanFilter filter = new ScanFilter.Builder().setServiceUuid(new ParcelUuid(UUIDHelper.uuidFromString(serviceUUIDs.getString(i)))).build();
-                filters.add(filter);
-            }
-        }
-
-        getBluetoothAdapter().getBluetoothLeScanner().startScan(filters, scanSettingsBuilder.build(), scanCallback);
-
-    }
     /**
      * 停止扫描
      */
-    public void stopScan(CallBackManager.Scaner scaner){
+    public void stopScan(CallBackManager.Scaner scanerCallback){
         if (getBluetoothAdapter() == null) {
-            scaner.onResult("No bluetooth support");
+            scanerCallback.onResult("No bluetooth support");
             return;
         }
         if (!getBluetoothAdapter().isEnabled()) {
-            scaner.onResult("Bluetooth not enabled");
+            scanerCallback.onResult("Bluetooth not enabled");
             return;
         }
         scanSessionID.incrementAndGet();
-        if (Build.VERSION.SDK_INT >= LOLLIPOP){
-            bluetoothAdapter.getBluetoothLeScanner().stopScan(scanCallback);
-        }else{
-            bluetoothAdapter.stopLeScan(leScanCallback);
-        }
-        scaner.onStop();
+        scanerManager.stopScan();
+        scanerCallback.onStop();
     }
 
     /**

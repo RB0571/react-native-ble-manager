@@ -10,7 +10,6 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.ServiceConnection;
-import android.os.Bundle;
 import android.os.IBinder;
 import android.util.Log;
 
@@ -25,8 +24,13 @@ import com.facebook.react.bridge.ReadableMap;
 import com.facebook.react.bridge.WritableArray;
 import com.facebook.react.bridge.WritableMap;
 
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
+
+import it.innove.legacy.ScanManager;
 
 import static android.app.Activity.RESULT_OK;
 
@@ -52,7 +56,6 @@ class BleManager extends ReactContextBaseJavaModule implements ActivityEventList
 		@Override
 		public void onServiceConnected(ComponentName componentName, IBinder iBinder) {
 			bleBinder = (BleBinder) iBinder;
-			bleBinder.setReactContext(reactContext);
 		}
 
 		@Override
@@ -181,8 +184,19 @@ class BleManager extends ReactContextBaseJavaModule implements ActivityEventList
 	@ReactMethod
 	public void scan(ReadableArray serviceUUIDs, final int scanSeconds, boolean allowDuplicates, ReadableMap options, final Callback callback) {
 		Log.d(LOG_TAG, "scan");
+		Log.e(LOG_TAG, "servicesUUID = "+serviceUUIDs.toString());
+		Log.e(LOG_TAG, "options = "+options.toString());
 
-		bleBinder.startScan(serviceUUIDs,scanSeconds,options,new CallBackManager.Scaner(){
+		List<String> services = new ArrayList<String>();
+		for (int i=0;i<serviceUUIDs.size();i++){
+			services.add(serviceUUIDs.getString(i));
+		}
+		Map<String,Integer> optionsMap = new HashMap<String, Integer>();
+		optionsMap.put("scanMode",options.getInt("scanMode"));
+		optionsMap.put("numberOfMatches",options.getInt("numberOfMatches"));
+		optionsMap.put("matchMode",options.getInt("matchMode"));
+
+		bleBinder.startScan(services,scanSeconds,optionsMap,new CallBackManager.Scaner(){
 			@Override
 			public void onFinded(Peripheral peripheral) {
 				WritableMap map = peripheral.asWritableMap();
