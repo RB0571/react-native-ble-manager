@@ -7,6 +7,7 @@ import android.bluetooth.BluetoothGattCharacteristic;
 import android.bluetooth.BluetoothGattDescriptor;
 import android.bluetooth.BluetoothGattService;
 import android.content.Context;
+import android.content.Intent;
 import android.util.Base64;
 import android.util.Log;
 
@@ -25,7 +26,7 @@ import java.util.*;
 public class Peripheral extends BluetoothGattCallback {
 
 	private static final String CHARACTERISTIC_NOTIFICATION_CONFIG = "00002902-0000-1000-8000-00805f9b34fb";
-	public static final String LOG_TAG = "logs";
+	public static final String LOG_TAG = "ReactNativeJS";
 
 	private BluetoothDevice device;
 	private byte[] advertisingData;
@@ -52,6 +53,13 @@ public class Peripheral extends BluetoothGattCallback {
 		this.device = device;
 	}
 
+	/**
+	 * 连接状态改变
+	 *
+	 * @param gatt
+	 * @param status
+	 * @param newState
+	 */
 	@Override
 	public void onConnectionStateChange(BluetoothGatt gatt, int status, int newState) {
 		Log.d(LOG_TAG, "onConnectionStateChange from " + status + " to "+ newState + " on peripheral:" + device.getAddress());
@@ -62,7 +70,7 @@ public class Peripheral extends BluetoothGattCallback {
 				Log.d(LOG_TAG, "Connected to: " + device.getAddress());
 				peripheralConnect.onResult(null);
 				peripheralConnect.onConnect(device);
-				peripheralConnect = null;
+				//peripheralConnect = null;
 			}
 		} else if (newState == BluetoothGatt.STATE_DISCONNECTED){
 			if (connected) {
@@ -81,8 +89,10 @@ public class Peripheral extends BluetoothGattCallback {
 		}
 
 	}
+	private Context context;
 	private CallBackManager.PeripheralConnect peripheralConnect;
 	public void connect(Context context,CallBackManager.PeripheralConnect callback) {
+		this.context = context;
 		if (!connected) {
 			BluetoothDevice device = getDevice();
 			this.peripheralConnect = callback;
@@ -103,10 +113,14 @@ public class Peripheral extends BluetoothGattCallback {
 				gatt.close();
 				gatt = null;
 				Log.d(LOG_TAG, "Disconnect");
-				peripheralConnect.onDisconnect(device);
+				if(peripheralConnect!=null){
+					peripheralConnect.onDisconnect(device);
+				}
 			} catch (Exception e) {
-				peripheralConnect.onDisconnect(device);
 				Log.d(LOG_TAG, "Error on disconnect", e);
+				if(peripheralConnect!=null){
+					peripheralConnect.onDisconnect(device);
+				}
 			}
 		}else
 			Log.d(LOG_TAG, "GATT is null");
@@ -133,7 +147,6 @@ public class Peripheral extends BluetoothGattCallback {
 	public WritableMap asWritableMap(BluetoothGatt gatt) {
 
 		WritableMap map = asWritableMap();
-
 		WritableArray servicesArray = Arguments.createArray();
 		WritableArray characteristicsArray = Arguments.createArray();
 
@@ -141,16 +154,16 @@ public class Peripheral extends BluetoothGattCallback {
 			for (Iterator<BluetoothGattService> it = gatt.getServices().iterator(); it.hasNext(); ) {
 				BluetoothGattService service = it.next();
 				WritableMap serviceMap = Arguments.createMap();
-				serviceMap.putString("uuid", UUIDHelper.uuidToString(service.getUuid()));
-
+				String serviceUUID = UUIDHelper.uuidToString(service.getUuid());
+				serviceMap.putString("uuid", serviceUUID);
 
 				for (Iterator<BluetoothGattCharacteristic> itCharacteristic = service.getCharacteristics().iterator(); itCharacteristic.hasNext(); ) {
+					//  解析Service数据结构，得到characteristic数据
 					BluetoothGattCharacteristic characteristic = itCharacteristic.next();
+
 					WritableMap characteristicsMap = Arguments.createMap();
-
-					characteristicsMap.putString("service", UUIDHelper.uuidToString(service.getUuid()));
+					characteristicsMap.putString("service", serviceUUID);
 					characteristicsMap.putString("characteristic", UUIDHelper.uuidToString(characteristic.getUuid()));
-
 					characteristicsMap.putMap("properties", Helper.decodeProperties(characteristic));
 
 					if (characteristic.getPermissions() > 0) {
@@ -161,16 +174,15 @@ public class Peripheral extends BluetoothGattCallback {
 					WritableArray descriptorsArray = Arguments.createArray();
 
 					for (BluetoothGattDescriptor descriptor : characteristic.getDescriptors()) {
+						// 解析 characteristic，得到descriptor数据
 						WritableMap descriptorMap = Arguments.createMap();
-						descriptorMap.putString("uuid", UUIDHelper.uuidToString(descriptor.getUuid()));
-						if (descriptor.getValue() != null)
-							descriptorMap.putString("value", Base64.encodeToString(descriptor.getValue(), Base64.NO_WRAP));
-						else
-							descriptorMap.putString("value", null);
 
+						descriptorMap.putString("uuid", UUIDHelper.uuidToString(descriptor.getUuid()));
+						descriptorMap.putString("value",descriptor.getValue() == null ? null : Base64.encodeToString(descriptor.getValue(), Base64.NO_WRAP));
 						if (descriptor.getPermissions() > 0) {
 							descriptorMap.putMap("permissions", Helper.decodePermissions(descriptor));
 						}
+
 						descriptorsArray.pushMap(descriptorMap);
 					}
 					if (descriptorsArray.size() > 0) {
@@ -217,9 +229,16 @@ public class Peripheral extends BluetoothGattCallback {
 		return gatt.getService(uuid) != null;
 	}
 
+	/**
+	 * 发现服务
+	 *
+	 * @param gatt
+	 * @param status
+	 */
 	@Override
 	public void onServicesDiscovered(BluetoothGatt gatt, int status) {
 		super.onServicesDiscovered(gatt, status);
+		Log.i(LOG_TAG, "Peripheral onServicesDiscovered");
 		if (retrieveServicesCallback != null) {
 			WritableMap map = this.asWritableMap(gatt);
 			retrieveServicesCallback.onSuccessed(map);
@@ -236,24 +255,19 @@ public class Peripheral extends BluetoothGattCallback {
 		gatt.discoverServices();
 	}
 
-	@Override
-	public void onCharacteristicChanged(BluetoothGatt gatt, BluetoothGattCharacteristic characteristic) {
-		super.onCharacteristicChanged(gatt, characteristic);
-
-		byte[] dataValue = characteristic.getValue();
-		Log.d(LOG_TAG, "Read: " + BleManager.bytesToHex(dataValue) + " from peripheral: " + device.getAddress());
-
-		WritableMap map = Arguments.createMap();
-		map.putString("peripheral", device.getAddress());
-		map.putString("characteristic", characteristic.getUuid().toString());
-		map.putString("service", characteristic.getService().getUuid().toString());
-		map.putArray("value", BleManager.bytesToWritableArray(dataValue));
-		//sendEvent("BleManagerDidUpdateValueForCharacteristic", map);
-	}
 
 
+
+	/**
+	 * 修改
+	 *
+	 * @param gatt
+	 * @param descriptor
+	 * @param status
+	 */
 	@Override
 	public void onDescriptorWrite(BluetoothGatt gatt, BluetoothGattDescriptor descriptor, int status) {
+		Log.i(LOG_TAG, "Peripheral onDescriptorWrite");
 		super.onDescriptorWrite(gatt, descriptor, status);
 		if (registerNotifyCallback != null) {
 			if (status == BluetoothGatt.GATT_SUCCESS) {
@@ -286,6 +300,14 @@ public class Peripheral extends BluetoothGattCallback {
 			}
 		}
 	}
+
+	/**
+	 *
+	 *
+	 * @param gatt
+	 * @param characteristic
+	 * @param status
+	 */
 	@Override
 	public void onCharacteristicRead(BluetoothGatt gatt, BluetoothGattCharacteristic characteristic, int status) {
 		super.onCharacteristicRead(gatt, characteristic, status);
@@ -312,6 +334,7 @@ public class Peripheral extends BluetoothGattCallback {
 	@Override
 	public void onReadRemoteRssi(BluetoothGatt gatt, int rssi, int status) {
 		super.onReadRemoteRssi(gatt, rssi, status);
+		Log.i(LOG_TAG, "Peripheral onReadRemoteRssi");
 		if (readRSSICallback != null) {
 			if (status == BluetoothGatt.GATT_SUCCESS) {
 				updateRssi(rssi);
@@ -354,7 +377,6 @@ public class Peripheral extends BluetoothGattCallback {
 
 				BluetoothGattDescriptor descriptor = characteristic.getDescriptor(UUIDHelper.uuidFromString(CHARACTERISTIC_NOTIFICATION_CONFIG));
 				if (descriptor != null) {
-
 					// Prefer notify over indicate
 					if ((characteristic.getProperties() & BluetoothGattCharacteristic.PROPERTY_NOTIFY) != 0) {
 						Log.d(LOG_TAG, "Characteristic " + characteristicUUID + " set NOTIFY");
@@ -401,7 +423,34 @@ public class Peripheral extends BluetoothGattCallback {
 		Log.d(LOG_TAG, "removeNotify");
 		this.setNotify(serviceUUID, characteristicUUID, false, callback);
 	}
+	/**
+	 * 监听特征值改变
+	 *
+	 * @param gatt
+	 * @param characteristic
+	 */
+	@Override
+	public void onCharacteristicChanged(BluetoothGatt gatt, BluetoothGattCharacteristic characteristic) {
+		super.onCharacteristicChanged(gatt, characteristic);
+		Log.i(LOG_TAG, "Peripheral onCharacteristicChanged");
 
+		byte[] dataValue = characteristic.getValue();
+		Log.d(LOG_TAG, "onCharacteristicChanged: " + BleManager.bytesToHex(dataValue) + " from peripheral: " + device.getAddress());
+
+		WritableMap map = Arguments.createMap();
+		map.putString("peripheral", device.getAddress());
+		map.putString("characteristic", characteristic.getUuid().toString());
+		map.putString("service", characteristic.getService().getUuid().toString());
+		map.putArray("value", BleManager.bytesToWritableArray(dataValue));
+		//sendEvent("BleManagerDidUpdateValueForCharacteristic", map);
+
+		if(registerNotifyCallback == null){
+			Log.d(LOG_TAG,"registerNotifyCallback == null");
+			context.sendBroadcast(new Intent(context,BackgroundReceiver.class));
+		}
+
+		registerNotifyCallback.onChanged(map);
+	}
 	// Some devices reuse UUIDs across characteristics, so we can't use service.getCharacteristic(characteristicUUID)
 	// instead check the UUID and properties for each characteristic in the service until we find the best match
 	// This function prefers Notify over Indicate
@@ -488,6 +537,7 @@ public class Peripheral extends BluetoothGattCallback {
 	@Override
 	public void onCharacteristicWrite(BluetoothGatt gatt, BluetoothGattCharacteristic characteristic, int status) {
 		super.onCharacteristicWrite(gatt, characteristic, status);
+		Log.i(LOG_TAG, "Peripheral onCharacteristicWrite");
 
 		if (writeCallback != null) {
 

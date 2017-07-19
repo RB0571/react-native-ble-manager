@@ -154,6 +154,9 @@ class BleManager extends ReactContextBaseJavaModule implements ActivityEventList
 			forceLegacy = options.getBoolean("forceLegacy");
 		}
 
+		Intent intentEnable = new Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE);
+		getCurrentActivity().startActivityForResult(intentEnable, ENABLE_REQUEST);
+
 		IntentFilter filter = new IntentFilter(BluetoothAdapter.ACTION_STATE_CHANGED);
 		context.registerReceiver(mReceiver, filter);
 		callback.invoke();
@@ -218,7 +221,7 @@ class BleManager extends ReactContextBaseJavaModule implements ActivityEventList
 				}
 			}
 		});
-		callback.invoke();
+		//callback.invoke();
 	}
 
 	// 未完成，需要完善peripheral中的Writable相关功能
@@ -434,10 +437,16 @@ class BleManager extends ReactContextBaseJavaModule implements ActivityEventList
 	@ReactMethod
 	public void startNotification(String deviceUUID, String serviceUUID, String characteristicUUID, final Callback callback) {
 		Log.d(LOG_TAG, "startNotification");
+		// ca58320fd9fcf00dc426 FFE0 FFE1
 		bleBinder.startNotification(deviceUUID, serviceUUID, characteristicUUID, new CallBackManager.PeripheralNotification() {
 			@Override
 			public void onResult(String text) {
 				callback.invoke(text);
+			}
+
+			@Override
+			public void onChanged(WritableMap map) {
+				bleEvent.sendEvent(BLEEvent.EVENT_BLEMANAGER_DID_UPDATE_CHARACTOERISTIC,map);
 			}
 		});
 	}
@@ -450,6 +459,11 @@ class BleManager extends ReactContextBaseJavaModule implements ActivityEventList
 			@Override
 			public void onResult(String text) {
 				callback.invoke(text);
+			}
+
+			@Override
+			public void onChanged(WritableMap map) {
+
 			}
 		});
 	}
