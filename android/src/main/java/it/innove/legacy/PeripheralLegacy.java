@@ -27,7 +27,6 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.UUID;
 
-import it.innove.BleManager;
 import it.innove.Helper;
 import it.innove.UUIDHelper;
 
@@ -307,7 +306,7 @@ public class PeripheralLegacy extends BluetoothGattCallback {
 				byte[] dataValue = characteristic.getValue();
 
 				if (readCallback != null) {
-					readCallback.invoke(null, BleManager.bytesToWritableArray(dataValue));
+					readCallback.invoke(null, BleManagerLegacy.bytesToWritableArray(dataValue));
 				}
 			} else {
 				readCallback.invoke("Error reading " + characteristic.getUuid() + " status=" + status, null);
