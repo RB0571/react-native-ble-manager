@@ -42,6 +42,7 @@ public class CallBackManager {
     }
     interface PeripheralNotification{
         void onResult(String text);
+        void onChanged(WritableMap map);
     }
 
 }
