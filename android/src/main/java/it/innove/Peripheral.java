@@ -276,7 +276,7 @@ public class Peripheral extends BluetoothGattCallback {
 				registerNotifyCallback.onResult("Error writing descriptor stats=" + status);
 			}
 
-			registerNotifyCallback = null;
+			//registerNotifyCallback = null;
 		}
 	}
 
@@ -446,7 +446,7 @@ public class Peripheral extends BluetoothGattCallback {
 
 		if(registerNotifyCallback == null){
 			Log.d(LOG_TAG,"registerNotifyCallback == null");
-			context.sendBroadcast(new Intent(context,BackgroundReceiver.class));
+			context.sendBroadcast(new Intent("com.roabay.luna.backgroud.action"));
 		}
 
 		registerNotifyCallback.onChanged(map);

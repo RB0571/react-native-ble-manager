@@ -1,18 +1,21 @@
 package it.innove;
 
 import android.app.Service;
+import android.bluetooth.BluetoothDevice;
 import android.content.Context;
 import android.content.Intent;
 import android.os.IBinder;
 import android.support.annotation.Nullable;
 import android.util.Log;
 
+import com.facebook.react.bridge.WritableMap;
+
 
 /**
  * Created by derrick on 2017/7/11.
  */
 public class BackgroundService extends Service {
-
+    private static final String TAG = "ReactNativeJS";
     private Context context;
     private BleBinder binder ;
     @Nullable
@@ -20,19 +23,19 @@ public class BackgroundService extends Service {
     public IBinder onBind(Intent intent) {
         int counter = 0;
 
-        Log.i("RBService"," = > onBind : conter = "+counter);
+        Log.i(TAG," service  = > onBind : conter = "+counter);
         return binder;
     }
 
     @Override
     public boolean onUnbind(Intent intent) {
-        Log.i("RBService"," = > onUnbind ");
+        Log.i(TAG," service  = > onUnbind ");
         return super.onUnbind(intent);
     }
 
     @Override
     public void onCreate() {
-        Log.i("RBService"," = > onCreate ");
+        Log.i(TAG," service  = > onCreate ");
         super.onCreate();
         context = this;
         binder = new BleBinder(context);
@@ -40,7 +43,7 @@ public class BackgroundService extends Service {
 
     @Override
     public void onDestroy() {
-        Log.i("RBService"," = > onDestroy ");
+        Log.i(TAG," service  = > onDestroy ");
         super.onDestroy();
     }
 
@@ -48,19 +51,69 @@ public class BackgroundService extends Service {
     public int onStartCommand(Intent intent, int flags, int startId) {
         int counter = 0;
 
-        Log.i("RBService"," = > onStartCommand : conter = "+counter);
+        Log.i(TAG," service  = > onStartCommand : conter = "+counter);
 
         if(intent == null){
-            new Thread(new Runnable() {
-                @Override
-                public void run() {
-//                    binder.init();
-//                    binder.startScan();
-//                    binder.connect();
-//                    binder.startNotification();
-                }
-            }).start();
+            isBackgroud = true;
+            startNotification();
+        } else {
+            isBackgroud = false;
+            //binder.disconnect(peripheralUUID,null);
         }
         return START_STICKY;//START_REDELIVER_INTENT; START_STICKY
+    }
+    private boolean isBackgroud = false;
+    private String peripheralUUID = "AB:BC:EA:AB:BA:60";
+    private String serviceUUID = "feed";
+    private String characteristicUUID = "c11b1906-f27c-4874-865e-80a4336f1e97";
+    private CallBackManager.PeripheralConnect connect = new CallBackManager.PeripheralConnect(){
+
+        @Override
+        public void onConnect(BluetoothDevice device) {
+            Log.i(TAG," service  = > PeripheralConnect : onConnect ");
+            binder.retrieveServices(peripheralUUID,services);
+        }
+        @Override
+        public void onDisconnect(BluetoothDevice device) {
+            Log.i(TAG," service  = > PeripheralConnect : onDisconnect ");
+            if (isBackgroud){
+                startNotification();
+            }
+        }
+        @Override
+        public void onResult(String text) {
+            Log.i(TAG," service  = > PeripheralConnect : onResult => "+text);
+
+        }
+
+
+    };
+    private CallBackManager.RetrieveServices services = new CallBackManager.RetrieveServices() {
+        @Override
+        public void onSuccessed(WritableMap map) {
+            Log.i(TAG," service  = > RetrieveServices : onSuccessed ");
+            binder.startNotification(peripheralUUID,serviceUUID,characteristicUUID,null);
+        }
+
+        @Override
+        public void onFailed(String text) {
+            Log.i(TAG," service  = > RetrieveServices : onFailed => "+text);
+
+        }
+    };
+    private CallBackManager.PeripheralNotification notification = new CallBackManager.PeripheralNotification() {
+        @Override
+        public void onResult(String text) {
+
+        }
+
+        @Override
+        public void onChanged(WritableMap map) {
+
+        }
+    };
+    private void startNotification(){
+        Log.i(TAG," service  = > startNotification : start ");
+        binder.connect(this,peripheralUUID,connect);
     }
 }
