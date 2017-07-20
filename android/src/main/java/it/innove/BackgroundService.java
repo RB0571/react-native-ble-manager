@@ -4,11 +4,16 @@ import android.app.Service;
 import android.bluetooth.BluetoothDevice;
 import android.content.Context;
 import android.content.Intent;
+import android.os.Bundle;
 import android.os.IBinder;
 import android.support.annotation.Nullable;
 import android.util.Log;
 
 import com.facebook.react.bridge.WritableMap;
+
+import java.nio.Buffer;
+import java.util.ArrayList;
+import java.util.List;
 
 
 /**
@@ -92,7 +97,7 @@ public class BackgroundService extends Service {
         @Override
         public void onSuccessed(WritableMap map) {
             Log.i(TAG," service  = > RetrieveServices : onSuccessed ");
-            binder.startNotification(peripheralUUID,serviceUUID,characteristicUUID,null);
+            binder.startNotification(peripheralUUID,serviceUUID,characteristicUUID,notification);
         }
 
         @Override
@@ -101,15 +106,29 @@ public class BackgroundService extends Service {
 
         }
     };
+
     private CallBackManager.PeripheralNotification notification = new CallBackManager.PeripheralNotification() {
         @Override
         public void onResult(String text) {
 
+            Log.i(TAG," service  = > PeripheralNotification : onResult => "+text);
         }
 
         @Override
-        public void onChanged(WritableMap map) {
-
+        public void onChanged() {
+            Log.i(TAG," service  = > PeripheralNotification : onChanged ");
+            Intent intent = new Intent("com.roabay.luna.backgroud.action");
+            Log.i(TAG," service : peripheralUUID = "+this.peripheralUUID);
+            Log.i(TAG," service : serviceUUID = "+this.serviceUUID);
+            Log.i(TAG," service : characteristicUUID = "+this.characteristicUUID);
+            Log.i(TAG," service :  values = "+this.values);
+            Bundle bundle = new Bundle();
+            bundle.putString("peripheralUUID",this.peripheralUUID);
+            bundle.putString("serviceUUID",this.serviceUUID);
+            bundle.putString("characteristicUUID",this.characteristicUUID);
+            bundle.putByteArray("values",this.values);
+            intent.putExtra("data",bundle);
+            context.sendBroadcast(intent);
         }
     };
     private void startNotification(){

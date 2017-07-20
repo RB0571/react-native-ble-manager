@@ -11,6 +11,7 @@ import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.ServiceConnection;
 import android.os.IBinder;
+import android.os.Parcel;
 import android.util.Log;
 
 import com.facebook.react.bridge.ActivityEventListener;
@@ -33,6 +34,7 @@ import java.util.Map;
 import it.innove.legacy.ScanManager;
 
 import static android.app.Activity.RESULT_OK;
+import static it.innove.CallBackManager.*;
 
 
 class BleManager extends ReactContextBaseJavaModule implements ActivityEventListener {
@@ -199,7 +201,7 @@ class BleManager extends ReactContextBaseJavaModule implements ActivityEventList
 		optionsMap.put("numberOfMatches",options.getInt("numberOfMatches"));
 		optionsMap.put("matchMode",options.getInt("matchMode"));
 
-		bleBinder.startScan(services,scanSeconds,optionsMap,new CallBackManager.Scaner(){
+		bleBinder.startScan(services,scanSeconds,optionsMap,new Scaner(){
 			@Override
 			public void onFinded(Peripheral peripheral) {
 				WritableMap map = peripheral.asWritableMap();
@@ -230,7 +232,7 @@ class BleManager extends ReactContextBaseJavaModule implements ActivityEventList
 		Log.d(LOG_TAG, "Stop scan");
 
 		//scanManager.stopScan(callback);
-		bleBinder.stopScan(new CallBackManager.Scaner() {
+		bleBinder.stopScan(new Scaner() {
 			@Override
 			public void onFinded(Peripheral peripheral) {
 
@@ -257,7 +259,7 @@ class BleManager extends ReactContextBaseJavaModule implements ActivityEventList
 	@ReactMethod
 	public void connect(String peripheralUUID, final Callback callback) {
 		Log.d(LOG_TAG, "Connect to: " + peripheralUUID );
-		bleBinder.connect(getCurrentActivity(),peripheralUUID, new CallBackManager.PeripheralConnect() {
+		bleBinder.connect(getCurrentActivity(),peripheralUUID, new PeripheralConnect() {
 			@Override
 			public void onConnect(BluetoothDevice device) {
 				WritableMap map = Arguments.createMap();
@@ -289,7 +291,7 @@ class BleManager extends ReactContextBaseJavaModule implements ActivityEventList
 	@ReactMethod
 	public void disconnect(String peripheralUUID, final Callback callback) {
 		Log.d(LOG_TAG, "Disconnect from: " + peripheralUUID);
-		bleBinder.disconnect(peripheralUUID,new CallBackManager.PeripheralConnect(){
+		bleBinder.disconnect(peripheralUUID,new PeripheralConnect(){
 			@Override
 			public void onConnect(BluetoothDevice device) {
 
@@ -316,7 +318,7 @@ class BleManager extends ReactContextBaseJavaModule implements ActivityEventList
 	public void retrieveServices(String deviceUUID, final Callback callback) {
 		Log.d(LOG_TAG, "Retrieve services from: " + deviceUUID);
 
-		bleBinder.retrieveServices(deviceUUID,new CallBackManager.RetrieveServices(){
+		bleBinder.retrieveServices(deviceUUID,new RetrieveServices(){
 			@Override
 			public void onSuccessed(WritableMap map) {
 //				WritableMap map = .asWritableMap(gatt);
@@ -379,7 +381,7 @@ class BleManager extends ReactContextBaseJavaModule implements ActivityEventList
 	@ReactMethod
 	public void write(String deviceUUID, String serviceUUID, String characteristicUUID, ReadableArray message, Integer maxByteSize, final Callback callback) {
 		Log.d(LOG_TAG, "Write to: " + deviceUUID);
-		bleBinder.write(deviceUUID, serviceUUID, characteristicUUID, message, maxByteSize, new CallBackManager.PeripheralWrite() {
+		bleBinder.write(deviceUUID, serviceUUID, characteristicUUID, message, maxByteSize, new PeripheralWrite() {
 			@Override
 			public void onResult(String text) {
 				callback.invoke(text);
@@ -391,7 +393,7 @@ class BleManager extends ReactContextBaseJavaModule implements ActivityEventList
 	public void writeWithoutResponse(String deviceUUID, String serviceUUID, String characteristicUUID, ReadableArray message, Integer maxByteSize, Integer queueSleepTime, final Callback callback) {
 		Log.d(LOG_TAG, "Write without response to: " + deviceUUID);
 
-		bleBinder.writeWithoutResponse(deviceUUID, serviceUUID, characteristicUUID, message, maxByteSize, queueSleepTime, new CallBackManager.PeripheralWrite() {
+		bleBinder.writeWithoutResponse(deviceUUID, serviceUUID, characteristicUUID, message, maxByteSize, queueSleepTime, new PeripheralWrite() {
 			@Override
 			public void onResult(String text) {
 				callback.invoke(text);
@@ -403,7 +405,7 @@ class BleManager extends ReactContextBaseJavaModule implements ActivityEventList
 	@ReactMethod
 	public void read(String deviceUUID, String serviceUUID, String characteristicUUID, final Callback callback) {
 		Log.d(LOG_TAG, "Read from: " + deviceUUID);
-		bleBinder.read(deviceUUID, serviceUUID, characteristicUUID, new CallBackManager.PeripheralRead() {
+		bleBinder.read(deviceUUID, serviceUUID, characteristicUUID, new PeripheralRead() {
 			@Override
 			public void onSuccessed(byte[] value) {
 				callback.invoke(null,bytesToWritableArray(value));
@@ -420,7 +422,7 @@ class BleManager extends ReactContextBaseJavaModule implements ActivityEventList
 	public void readRSSI(String deviceUUID, final Callback callback) {
 		Log.d(LOG_TAG, "Read RSSI from: " + deviceUUID);
 
-		bleBinder.readRssi(deviceUUID, new CallBackManager.PeripheralRssiRead() {
+		bleBinder.readRssi(deviceUUID, new PeripheralRssiRead() {
 			@Override
 			public void onSuccessed(int rssi) {
 				callback.invoke(null,rssi);
@@ -437,6 +439,7 @@ class BleManager extends ReactContextBaseJavaModule implements ActivityEventList
 	@ReactMethod
 	public void startNotification(String deviceUUID, String serviceUUID, String characteristicUUID, final Callback callback) {
 		Log.d(LOG_TAG, "startNotification");
+
 		// ca58320fd9fcf00dc426 FFE0 FFE1
 		bleBinder.startNotification(deviceUUID, serviceUUID, characteristicUUID, new CallBackManager.PeripheralNotification() {
 			@Override
@@ -445,9 +448,15 @@ class BleManager extends ReactContextBaseJavaModule implements ActivityEventList
 			}
 
 			@Override
-			public void onChanged(WritableMap map) {
+			public void onChanged() {
+				WritableMap map = Arguments.createMap();
+				map.putString("peripheral", this.peripheralUUID);
+				map.putString("characteristic", this.characteristicUUID);
+				map.putString("service", this.serviceUUID);
+				map.putArray("value", bytesToWritableArray(this.values));
 				bleEvent.sendEvent(BLEEvent.EVENT_BLEMANAGER_DID_UPDATE_CHARACTOERISTIC,map);
 			}
+
 		});
 	}
 
@@ -458,11 +467,12 @@ class BleManager extends ReactContextBaseJavaModule implements ActivityEventList
 		bleBinder.stopNotification(deviceUUID, serviceUUID, characteristicUUID, new CallBackManager.PeripheralNotification() {
 			@Override
 			public void onResult(String text) {
+
 				callback.invoke(text);
 			}
 
 			@Override
-			public void onChanged(WritableMap map) {
+			public void onChanged() {
 
 			}
 		});

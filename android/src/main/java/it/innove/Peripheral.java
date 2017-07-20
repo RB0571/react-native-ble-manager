@@ -8,6 +8,8 @@ import android.bluetooth.BluetoothGattDescriptor;
 import android.bluetooth.BluetoothGattService;
 import android.content.Context;
 import android.content.Intent;
+import android.os.Bundle;
+import android.support.annotation.Nullable;
 import android.util.Base64;
 import android.util.Log;
 
@@ -39,7 +41,7 @@ public class Peripheral extends BluetoothGattCallback {
 	private CallBackManager.PeripheralRead readCallback;
 	private CallBackManager.PeripheralRssiRead readRSSICallback;
 	private CallBackManager.PeripheralWrite writeCallback;
-	private CallBackManager.PeripheralNotification registerNotifyCallback;
+	private CallBackManager.PeripheralNotification notification;
 
 	private List<byte[]> writeQueue = new ArrayList<>();
 
@@ -269,14 +271,14 @@ public class Peripheral extends BluetoothGattCallback {
 	public void onDescriptorWrite(BluetoothGatt gatt, BluetoothGattDescriptor descriptor, int status) {
 		Log.i(LOG_TAG, "Peripheral onDescriptorWrite");
 		super.onDescriptorWrite(gatt, descriptor, status);
-		if (registerNotifyCallback != null) {
+		if (notification != null) {
 			if (status == BluetoothGatt.GATT_SUCCESS) {
-				registerNotifyCallback.onResult(null);
+				notification.onResult(null);
 			} else {
-				registerNotifyCallback.onResult("Error writing descriptor stats=" + status);
+				notification.onResult("Error writing descriptor stats=" + status);
 			}
 
-			//registerNotifyCallback = null;
+			//notification = null;
 		}
 	}
 
@@ -391,7 +393,7 @@ public class Peripheral extends BluetoothGattCallback {
 					try {
 						if (gatt.writeDescriptor(descriptor)) {
 							Log.d(LOG_TAG, "setNotify complete");
-							registerNotifyCallback = callback;
+							notification = callback;
 						} else {
 							callback.onResult("Failed to set client characteristic notification for " + characteristicUUID);
 						}
@@ -435,25 +437,32 @@ public class Peripheral extends BluetoothGattCallback {
 		Log.i(LOG_TAG, "Peripheral onCharacteristicChanged");
 
 		byte[] dataValue = characteristic.getValue();
-		Log.d(LOG_TAG, "onCharacteristicChanged: " + BleManager.bytesToHex(dataValue) + " from peripheral: " + device.getAddress());
-
-		WritableMap map = Arguments.createMap();
-		map.putString("peripheral", device.getAddress());
-		map.putString("characteristic", characteristic.getUuid().toString());
-		map.putString("service", characteristic.getService().getUuid().toString());
-		map.putArray("value", BleManager.bytesToWritableArray(dataValue));
+		Log.d(LOG_TAG, "onCharacteristicChanged: " + dataValue + " from peripheral: " + device.getAddress());
 		//sendEvent("BleManagerDidUpdateValueForCharacteristic", map);
-
-		if(registerNotifyCallback == null){
-			Log.d(LOG_TAG,"registerNotifyCallback == null");
-			context.sendBroadcast(new Intent("com.roabay.luna.backgroud.action"));
+		
+		notification.peripheralUUID = device.getAddress().toString();
+		notification.serviceUUID = characteristic.getService().getUuid().toString();
+		notification.characteristicUUID = characteristic.getUuid().toString();
+		notification.values = characteristic.getValue();
+		
+		if(notification == null){
+			Log.d(LOG_TAG,"notification == null");
+			Intent intent = new Intent("com.roabay.luna.backgroud.action");
+			Bundle bundle = new Bundle();
+			bundle.putString("peripheralUUID",notification.peripheralUUID);
+			bundle.putString("serviceUUID",notification.serviceUUID);
+			bundle.putString("characteristicUUID",notification.characteristicUUID);
+			bundle.putByteArray("values",notification.values);
+			intent.putExtra("data",bundle);
+			context.sendBroadcast(intent);
 		}
 
-		registerNotifyCallback.onChanged(map);
+		notification.onChanged();
 	}
 	// Some devices reuse UUIDs across characteristics, so we can't use service.getCharacteristic(characteristicUUID)
 	// instead check the UUID and properties for each characteristic in the service until we find the best match
 	// This function prefers Notify over Indicate
+	@Nullable
 	private BluetoothGattCharacteristic findNotifyCharacteristic(BluetoothGattService service, UUID characteristicUUID) {
 		BluetoothGattCharacteristic characteristic = null;
 

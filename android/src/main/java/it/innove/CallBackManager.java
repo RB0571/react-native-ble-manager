@@ -2,6 +2,8 @@ package it.innove;
 
 import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothGatt;
+import android.os.Parcel;
+import android.os.Parcelable;
 
 import com.facebook.react.bridge.ReactApplicationContext;
 import com.facebook.react.bridge.WritableMap;
@@ -11,38 +13,55 @@ import com.facebook.react.bridge.WritableMap;
  */
 
 public class CallBackManager {
-    interface Scaner{
+    public interface Scaner{
         void onFinded(Peripheral peripheral);
         void onStop();
         void onResult(String text);
     }
 
-    interface PeripheralConnect {
+    public interface PeripheralConnect {
         void onConnect(BluetoothDevice device);
         void onDisconnect(BluetoothDevice device);
         void onResult(String text);
     }
 
-    interface RetrieveServices{
+    public interface RetrieveServices{
         void onSuccessed(WritableMap map);
         void onFailed(String text);
     }
 
-    interface PeripheralRssiRead{
+    public interface PeripheralRssiRead{
         void onSuccessed(int rssi);
         void onFailed(String text);
     }
 
-    interface PeripheralRead{
+    public interface PeripheralRead{
         void onSuccessed(byte[] values);
         void onFailed(String text);
     }
-    interface PeripheralWrite {
+    public interface PeripheralWrite {
         void onResult(String text);
     }
-    interface PeripheralNotification{
-        void onResult(String text);
-        void onChanged(WritableMap map);
+    public abstract static class PeripheralNotification implements Parcelable{
+        public String peripheralUUID;
+        public String serviceUUID;
+        public String characteristicUUID;
+        public byte[] values;
+
+        @Override
+        public int describeContents() {
+            return 0;
+        }
+
+        @Override
+        public void writeToParcel(Parcel dest, int flags) {
+            dest.writeString(peripheralUUID);
+            dest.writeString(serviceUUID);
+            dest.writeString(characteristicUUID);
+            dest.writeByteArray(values);
+        }
+        abstract void onResult(String text);
+        abstract void onChanged();
     }
 
 }
