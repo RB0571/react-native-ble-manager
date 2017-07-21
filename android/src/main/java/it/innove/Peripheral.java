@@ -26,7 +26,10 @@ import java.util.*;
  * Peripheral wraps the BluetoothDevice and provides methods to convert to JSON.
  */
 public class Peripheral extends BluetoothGattCallback {
-
+	public static final String PERIPHERAL_UUID = "peripheralUUID";
+	public static final String SERVICE_UUID = "serviceUUID";
+	public static final String CHARACTERISTIC_UUID = "characteristicUUID";
+	public static final String VALUES = "values";
 	private static final String CHARACTERISTIC_NOTIFICATION_CONFIG = "00002902-0000-1000-8000-00805f9b34fb";
 	public static final String LOG_TAG = "ReactNativeJS";
 
@@ -444,18 +447,18 @@ public class Peripheral extends BluetoothGattCallback {
 		notification.serviceUUID = characteristic.getService().getUuid().toString();
 		notification.characteristicUUID = characteristic.getUuid().toString();
 		notification.values = characteristic.getValue();
-		
-		if(notification == null){
-			Log.d(LOG_TAG,"notification == null");
-			Intent intent = new Intent("com.roabay.luna.backgroud.action");
-			Bundle bundle = new Bundle();
-			bundle.putString("peripheralUUID",notification.peripheralUUID);
-			bundle.putString("serviceUUID",notification.serviceUUID);
-			bundle.putString("characteristicUUID",notification.characteristicUUID);
-			bundle.putByteArray("values",notification.values);
-			intent.putExtra("data",bundle);
-			context.sendBroadcast(intent);
-		}
+//
+//		if(notification == null){
+//			Log.d(LOG_TAG,"notification == null");
+//			Intent intent = new Intent("com.roabay.luna.backgroud.action");
+//			Bundle bundle = new Bundle();
+//			bundle.putString("peripheralUUID",notification.peripheralUUID);
+//			bundle.putString("serviceUUID",notification.serviceUUID);
+//			bundle.putString("characteristicUUID",notification.characteristicUUID);
+//			bundle.putByteArray("values",notification.values);
+//			intent.putExtra("data",bundle);
+//			context.sendBroadcast(intent);
+//		}
 
 		notification.onChanged();
 	}

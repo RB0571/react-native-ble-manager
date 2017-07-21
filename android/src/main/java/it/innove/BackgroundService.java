@@ -11,6 +11,10 @@ import android.util.Log;
 
 import com.facebook.react.bridge.WritableMap;
 
+import org.json.JSONArray;
+import org.json.JSONException;
+import org.json.JSONObject;
+
 import java.nio.Buffer;
 import java.util.ArrayList;
 import java.util.List;
@@ -23,6 +27,7 @@ public class BackgroundService extends Service {
     private static final String TAG = "ReactNativeJS";
     private Context context;
     private BleBinder binder ;
+    private PeripheralJson peripheralJson;
     @Nullable
     @Override
     public IBinder onBind(Intent intent) {
@@ -44,6 +49,7 @@ public class BackgroundService extends Service {
         super.onCreate();
         context = this;
         binder = new BleBinder(context);
+        peripheralJson = new PeripheralJson(context);
     }
 
     @Override
@@ -60,7 +66,7 @@ public class BackgroundService extends Service {
 
         if(intent == null){
             isBackgroud = true;
-            startNotification();
+            start();
         } else {
             isBackgroud = false;
             //binder.disconnect(peripheralUUID,null);
@@ -71,68 +77,79 @@ public class BackgroundService extends Service {
     private String peripheralUUID = "AB:BC:EA:AB:BA:60";
     private String serviceUUID = "feed";
     private String characteristicUUID = "c11b1906-f27c-4874-865e-80a4336f1e97";
-    private CallBackManager.PeripheralConnect connect = new CallBackManager.PeripheralConnect(){
-
-        @Override
-        public void onConnect(BluetoothDevice device) {
-            Log.i(TAG," service  = > PeripheralConnect : onConnect ");
-            binder.retrieveServices(peripheralUUID,services);
-        }
-        @Override
-        public void onDisconnect(BluetoothDevice device) {
-            Log.i(TAG," service  = > PeripheralConnect : onDisconnect ");
-            if (isBackgroud){
-                startNotification();
-            }
-        }
-        @Override
-        public void onResult(String text) {
-            Log.i(TAG," service  = > PeripheralConnect : onResult => "+text);
-
-        }
-
-
-    };
-    private CallBackManager.RetrieveServices services = new CallBackManager.RetrieveServices() {
-        @Override
-        public void onSuccessed(WritableMap map) {
-            Log.i(TAG," service  = > RetrieveServices : onSuccessed ");
-            binder.startNotification(peripheralUUID,serviceUUID,characteristicUUID,notification);
-        }
-
-        @Override
-        public void onFailed(String text) {
-            Log.i(TAG," service  = > RetrieveServices : onFailed => "+text);
-
-        }
-    };
 
     private CallBackManager.PeripheralNotification notification = new CallBackManager.PeripheralNotification() {
         @Override
         public void onResult(String text) {
-
-            Log.i(TAG," service  = > PeripheralNotification : onResult => "+text);
+            //Log.i(TAG," service  = > PeripheralNotification : onResult => "+text);
         }
 
         @Override
         public void onChanged() {
-            Log.i(TAG," service  = > PeripheralNotification : onChanged ");
+            //Log.i(TAG," service  = > PeripheralNotification : onChanged ");
             Intent intent = new Intent("com.roabay.luna.backgroud.action");
-            Log.i(TAG," service : peripheralUUID = "+this.peripheralUUID);
-            Log.i(TAG," service : serviceUUID = "+this.serviceUUID);
-            Log.i(TAG," service : characteristicUUID = "+this.characteristicUUID);
-            Log.i(TAG," service :  values = "+this.values);
+//            Log.i(TAG," service : peripheralUUID = "+this.peripheralUUID);
+//            Log.i(TAG," service : serviceUUID = "+this.serviceUUID);
+//            Log.i(TAG," service : characteristicUUID = "+this.characteristicUUID);
+//            Log.i(TAG," service :  values = "+this.values);
             Bundle bundle = new Bundle();
-            bundle.putString("peripheralUUID",this.peripheralUUID);
-            bundle.putString("serviceUUID",this.serviceUUID);
-            bundle.putString("characteristicUUID",this.characteristicUUID);
-            bundle.putByteArray("values",this.values);
+            bundle.putString(Peripheral.PERIPHERAL_UUID,this.peripheralUUID);
+            bundle.putString(Peripheral.SERVICE_UUID,this.serviceUUID);
+            bundle.putString(Peripheral.CHARACTERISTIC_UUID,this.characteristicUUID);
+            bundle.putByteArray(Peripheral.VALUES,this.values);
             intent.putExtra("data",bundle);
             context.sendBroadcast(intent);
         }
     };
-    private void startNotification(){
-        Log.i(TAG," service  = > startNotification : start ");
-        binder.connect(this,peripheralUUID,connect);
+    private void connect(final String peripheralUUID,final String serviceUUID,final String characteristicUUID){
+        Log.i(TAG," service  = > connect : "+peripheralUUID+" , "+serviceUUID+" , "+characteristicUUID);
+        binder.connect(this,peripheralUUID,new CallBackManager.PeripheralConnect(){
+            @Override
+            public void onConnect(BluetoothDevice device) {
+            Log.i(TAG," service  = > PeripheralConnect : onConnect ");
+                retrieveServices(peripheralUUID,serviceUUID,characteristicUUID);
+            }
+            @Override
+            public void onDisconnect(BluetoothDevice device) {
+            Log.i(TAG," service  = > PeripheralConnect : onDisconnect ");
+                if (isBackgroud){
+                    connect(peripheralUUID,serviceUUID,characteristicUUID);
+                }
+            }
+            @Override
+            public void onResult(String text) {
+            Log.i(TAG," service  = > PeripheralConnect : onResult => "+text);
+
+            }
+        });
+    }
+    private void retrieveServices(final String peripheralUUID,final String serviceUUID,final String characteristicUUID){
+        binder.retrieveServices(peripheralUUID,new CallBackManager.RetrieveServices() {
+            @Override
+            public void onSuccessed(WritableMap map) {
+                Log.i(TAG," service  = > RetrieveServices : onSuccessed ");
+                binder.startNotification(peripheralUUID,serviceUUID,characteristicUUID,notification);
+            }
+
+            @Override
+            public void onFailed(String text) {
+                Log.i(TAG," service  = > RetrieveServices : onFailed => "+text);
+            }
+        });
+    }
+    private void start(){
+        JSONArray peripheralArray = peripheralJson.get();
+        Log.i(TAG," service  = > start : peripheralArray => "+peripheralArray.toString());
+        int length = peripheralArray.length();
+        for (int i=0;i<length;i++){
+            try {
+                JSONObject peripheralJson = (JSONObject) peripheralArray.get(i);
+                Log.i(TAG," service  = > start : peripheralJson => "+peripheralJson.toString());
+                connect(peripheralJson.getString(Peripheral.PERIPHERAL_UUID),peripheralJson.getString(Peripheral.SERVICE_UUID),peripheralJson.getString(Peripheral.CHARACTERISTIC_UUID));
+            }catch (JSONException e){
+                e.printStackTrace();
+                Log.i(TAG," service  = > start : printStackTrace ");
+            }
+        }
     }
 }

@@ -11,6 +11,11 @@ import android.util.Log;
 
 import com.facebook.react.bridge.ReactApplicationContext;
 import com.facebook.react.bridge.ReadableArray;
+
+import org.json.JSONArray;
+import org.json.JSONException;
+import org.json.JSONObject;
+
 import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -25,6 +30,7 @@ import static android.os.Build.VERSION_CODES.LOLLIPOP;
 
 public class BleBinder extends Binder {
     private static final String TAG = "BleBinder";
+    private PeripheralJson peripheralJson;
     private BluetoothAdapter bluetoothAdapter;
     private ScanerManager scanerManager;
     private ReactApplicationContext reactContext;
@@ -32,8 +38,10 @@ public class BleBinder extends Binder {
     // key is the MAC Address
     public Map<String, Peripheral> peripherals = new LinkedHashMap<>();
 
+
     public BleBinder(Context context){
         this.context = context;
+        peripheralJson = new PeripheralJson(context);
         if(Build.VERSION.SDK_INT >= LOLLIPOP){
             scanerManager = new ScanerLollipop(getBluetoothAdapter(),scaner);
         }else{
@@ -82,7 +90,7 @@ public class BleBinder extends Binder {
             Peripheral peripheral;
             if (!peripherals.containsKey(address)) {
                 peripheral = new Peripheral(device, rssi, scanRecord);
-                peripherals.put(device.getAddress(), peripheral);
+                //peripherals.put(device.getAddress(), peripheral);
             } else {
                 peripheral = peripherals.get(address);
                 peripheral.updateRssi(rssi);
@@ -243,6 +251,15 @@ public class BleBinder extends Binder {
      */
     public void startNotification(String deviceUUID, String serviceUUID, String characteristicUUID, CallBackManager.PeripheralNotification notificationCallback){
 
+        JSONObject peripheralObject = new JSONObject();
+        try{
+            peripheralObject.put(Peripheral.PERIPHERAL_UUID,deviceUUID);
+            peripheralObject.put(Peripheral.SERVICE_UUID,serviceUUID);
+            peripheralObject.put(Peripheral.CHARACTERISTIC_UUID,characteristicUUID);
+        }catch (JSONException e){
+            e.printStackTrace();
+        }
+        peripheralJson.put(peripheralObject);
         Peripheral peripheral = peripherals.get(deviceUUID);
         if (peripheral != null){
             peripheral.registerNotify(UUIDHelper.uuidFromString(serviceUUID), UUIDHelper.uuidFromString(characteristicUUID), notificationCallback);
