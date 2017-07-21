@@ -72,6 +72,7 @@ class BleManager extends ReactContextBaseJavaModule implements ActivityEventList
 		bleEvent = new BLEEvent(reactContext);
 		reactContext.addActivityEventListener(this);
 		Log.d(LOG_TAG, "BleManager created");
+		new PeripheralJson(context).clear();
 		Intent intent = new Intent(context,BackgroundService.class);
 		context.startService(intent);
 		context.bindService(intent,conn, Service.BIND_AUTO_CREATE);
