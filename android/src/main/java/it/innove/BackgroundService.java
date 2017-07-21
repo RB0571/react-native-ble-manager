@@ -2,8 +2,10 @@ package it.innove;
 
 import android.app.Service;
 import android.bluetooth.BluetoothDevice;
+import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.os.Bundle;
 import android.os.IBinder;
 import android.support.annotation.Nullable;
@@ -50,11 +52,28 @@ public class BackgroundService extends Service {
         context = this;
         binder = new BleBinder(context);
         peripheralJson = new PeripheralJson(context);
+        register();
     }
 
+    private void register(){
+        IntentFilter filter = new IntentFilter();
+        filter.addAction(Intent.ACTION_SCREEN_OFF);
+        registerReceiver(receiver,filter);
+    }
+    private BroadcastReceiver receiver = new BroadcastReceiver() {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            String action = intent.getAction();
+            Log.i("ReactNativeJS","MainActivity : "+action);
+            if (Intent.ACTION_SCREEN_OFF.equals(action)){
+                context.sendBroadcast(new Intent("com.roabay.luna.backgroud.stop.action"));
+            }
+        }
+    };
     @Override
     public void onDestroy() {
         Log.i(TAG," service  = > onDestroy ");
+        unregisterReceiver(receiver);
         super.onDestroy();
     }
 
