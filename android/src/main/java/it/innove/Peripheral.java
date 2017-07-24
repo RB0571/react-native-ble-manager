@@ -31,7 +31,7 @@ public class Peripheral extends BluetoothGattCallback {
 	public static final String CHARACTERISTIC_UUID = "characteristicUUID";
 	public static final String VALUES = "values";
 	private static final String CHARACTERISTIC_NOTIFICATION_CONFIG = "00002902-0000-1000-8000-00805f9b34fb";
-	public static final String LOG_TAG = "ReactNativeJS";
+	public static final String LOG_TAG = "Peripheral";
 
 	private BluetoothDevice device;
 	private byte[] advertisingData;
@@ -67,7 +67,7 @@ public class Peripheral extends BluetoothGattCallback {
 	 */
 	@Override
 	public void onConnectionStateChange(BluetoothGatt gatt, int status, int newState) {
-		Log.d(LOG_TAG, "onConnectionStateChange from " + status + " to "+ newState + " on peripheral:" + device.getAddress());
+		Log.d(LOG_TAG, "onConnectionStateChange ");
 		this.gatt = gatt;
 		if (newState == BluetoothGatt.STATE_CONNECTED) {
 			connected = true;
@@ -316,7 +316,7 @@ public class Peripheral extends BluetoothGattCallback {
 	@Override
 	public void onCharacteristicRead(BluetoothGatt gatt, BluetoothGattCharacteristic characteristic, int status) {
 		super.onCharacteristicRead(gatt, characteristic, status);
-		Log.d(LOG_TAG, "onCharacteristicRead " + characteristic);
+		Log.d(LOG_TAG, "onCharacteristicRead ");
 
 		if (readCallback != null) {
 
@@ -440,7 +440,7 @@ public class Peripheral extends BluetoothGattCallback {
 		Log.i(LOG_TAG, "Peripheral onCharacteristicChanged");
 
 		byte[] dataValue = characteristic.getValue();
-		Log.d(LOG_TAG, "onCharacteristicChanged: " + dataValue + " from peripheral: " + device.getAddress());
+		//Log.d(LOG_TAG, "onCharacteristicChanged: " + dataValue + " from peripheral: " + device.getAddress());
 		//sendEvent("BleManagerDidUpdateValueForCharacteristic", map);
 		
 		notification.peripheralUUID = device.getAddress().toString();

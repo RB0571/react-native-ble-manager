@@ -190,8 +190,6 @@ class BleManager extends ReactContextBaseJavaModule implements ActivityEventList
 	@ReactMethod
 	public void scan(ReadableArray serviceUUIDs, final int scanSeconds, boolean allowDuplicates, ReadableMap options, final Callback callback) {
 		Log.d(LOG_TAG, "scan");
-		Log.e(LOG_TAG, "servicesUUID = "+serviceUUIDs.toString());
-		Log.e(LOG_TAG, "options = "+options.toString());
 
 		List<String> services = new ArrayList<String>();
 		for (int i=0;i<serviceUUIDs.size();i++){
@@ -254,7 +252,7 @@ class BleManager extends ReactContextBaseJavaModule implements ActivityEventList
 				}
 			}
 		});
-		callback.invoke();
+		//callback.invoke();
 	}
 
 	@ReactMethod
