@@ -29,7 +29,7 @@ import static android.os.Build.VERSION_CODES.LOLLIPOP;
  */
 
 public class BleBinder extends Binder {
-    private static final String TAG = "BleBinder";
+    private static final String TAG = "BleManager";
     private PeripheralJson peripheralJson;
     private BluetoothAdapter bluetoothAdapter;
     private ScanerManager scanerManager;
@@ -86,16 +86,18 @@ public class BleBinder extends Binder {
     private ScanerManager.IScaner scaner = new ScanerManager.IScaner() {
         @Override
         public void onResult(BluetoothDevice device, int rssi, byte[] scanRecord) {
+            Log.i(TAG,"blebinder : ScanerManager : device = "+device.getName());
             String address = device.getAddress();
             Peripheral peripheral;
             if (!peripherals.containsKey(address)) {
                 peripheral = new Peripheral(device, rssi, scanRecord);
-                //peripherals.put(device.getAddress(), peripheral);
+                peripherals.put(device.getAddress(), peripheral);
             } else {
                 peripheral = peripherals.get(address);
                 peripheral.updateRssi(rssi);
                 peripheral.updateData(scanRecord);
             }
+            Log.i(TAG,"blebinder : ScanerManager : peripherals = "+peripherals.size());
             scanerCallback.onFinded(peripheral);
         }
     };
@@ -107,12 +109,15 @@ public class BleBinder extends Binder {
      * @param scanerCallback
      */
     public void startScan(List<String> serviceUUIDs, final int scanSeconds, Map<String,Integer> options, final CallBackManager.Scaner scanerCallback){
+        Log.i(TAG,"blebinder : startScan");
         this.scanerCallback = scanerCallback;
         if (getBluetoothAdapter() == null) {
+            Log.i(TAG,"blebinder : startScan => No bluetooth support");
             scanerCallback.onResult("No bluetooth support");
             return;
         }
         if (!getBluetoothAdapter().isEnabled()) {
+            Log.i(TAG,"blebinder : startScan => bluetooth closed");
             scanerCallback.onResult("bluetooth closed");
             return;
         }
@@ -131,9 +136,12 @@ public class BleBinder extends Binder {
                     if(currentSessionID == scanSessionID.intValue()){
                         try{
                             Thread.sleep(scanSeconds*1000);
-                            scanerManager.stopScan();
+//                            scanerManager.stopScan();
+//                            scanerCallback.onStop();
+                            stopScan(scanerCallback);
                         }catch (InterruptedException e){
                             e.printStackTrace();
+                            Log.i(TAG,"blebinder : startScan => InterruptedException");
                         }
                     }
                 }
@@ -146,6 +154,7 @@ public class BleBinder extends Binder {
      * 停止扫描
      */
     public void stopScan(CallBackManager.Scaner scanerCallback){
+        Log.i(TAG,"blebinder : stopScan : peripherals = "+peripherals.size());
         if (getBluetoothAdapter() == null) {
             scanerCallback.onResult("No bluetooth support");
             return;
@@ -205,6 +214,7 @@ public class BleBinder extends Binder {
      * @return
      */
     public Map<String, Peripheral> getPeripherals(){
+        Log.i(TAG,"blebinder : getPeripherals : peripherals = "+peripherals.size());
         return peripherals;
     }
 

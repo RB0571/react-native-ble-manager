@@ -21,14 +21,14 @@ public class ScanerLegacy extends ScanerManager{
     private BluetoothAdapter.LeScanCallback leScanCallback = new BluetoothAdapter.LeScanCallback() {
         @Override
         public void onLeScan(BluetoothDevice device, final int rssi, final byte[] scanRecord) {
-            Log.i("RBService","onLeScan : "+device.toString());
+            Log.i(TAG,"ScanerLegacy LeScanCallback");
             callback.onResult(device,rssi,scanRecord);
         }
     };
 
     @Override
     public void startScan(List<String> filters, Map<String,Integer> options) {
-        Log.i("RBService","startScan : ");
+        Log.i(TAG,"ScanerLegacy startScan");
         bluetoothAdapter.startLeScan(leScanCallback);
     }
 

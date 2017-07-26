@@ -26,6 +26,15 @@ import java.util.List;
  * Created by derrick on 2017/7/11.
  */
 public class BackgroundService extends Service {
+
+
+    private static final String ACTION_SOUND_START = "com.roabay.luna.backgroud.action.sound.start";
+    private static final String ACTION_SOUND_STOP = "com.roabay.luna.backgroud.action.sound.stop";
+    private static final String ACTION_APP_START = "com.roabay.luna.backgroud.action.app.start";
+    private static final String ACTION_SCREEN_ON = "com.roabay.luna.backgroud.action.screen.on";
+    private static final String ACTION_SCREEN_OFF = "com.roabay.luna.backgroud.action.screen.off";
+    private static final String ACTION_SCREEN_UESR_UNLOCK = "com.roabay.luna.backgroud.action.screen.user.unlock";
+
     private static final String TAG = "ReactNativeJS";
     private Context context;
     private BleBinder binder ;
@@ -57,16 +66,22 @@ public class BackgroundService extends Service {
 
     private void register(){
         IntentFilter filter = new IntentFilter();
+        filter.addAction(Intent.ACTION_SCREEN_ON);
         filter.addAction(Intent.ACTION_SCREEN_OFF);
+        filter.addAction(Intent.ACTION_USER_PRESENT);
         registerReceiver(receiver,filter);
     }
     private BroadcastReceiver receiver = new BroadcastReceiver() {
         @Override
         public void onReceive(Context context, Intent intent) {
             String action = intent.getAction();
-            Log.i("ReactNativeJS","MainActivity : "+action);
+            Log.i("ReactNativeJS","BackgoundService : "+action);
             if (Intent.ACTION_SCREEN_OFF.equals(action)){
-                context.sendBroadcast(new Intent("com.roabay.luna.backgroud.stop.action"));
+                context.sendBroadcast(new Intent(ACTION_SCREEN_OFF));
+            }else if(Intent.ACTION_SCREEN_OFF.equals(action)){
+                context.sendBroadcast(new Intent(ACTION_SCREEN_ON));
+            }else if(Intent.ACTION_USER_PRESENT.equals(action)){
+                context.sendBroadcast(new Intent(ACTION_SCREEN_UESR_UNLOCK));
             }
         }
     };
@@ -105,12 +120,8 @@ public class BackgroundService extends Service {
 
         @Override
         public void onChanged() {
-            //Log.i(TAG," service  = > PeripheralNotification : onChanged ");
-            Intent intent = new Intent("com.roabay.luna.backgroud.action");
-//            Log.i(TAG," service : peripheralUUID = "+this.peripheralUUID);
-//            Log.i(TAG," service : serviceUUID = "+this.serviceUUID);
-//            Log.i(TAG," service : characteristicUUID = "+this.characteristicUUID);
-//            Log.i(TAG," service :  values = "+this.values);
+            Log.i("ReactNativeJS","BackgoundService : "+ACTION_SOUND_START);
+            Intent intent = new Intent(ACTION_SOUND_START);
             Bundle bundle = new Bundle();
             bundle.putString(Peripheral.PERIPHERAL_UUID,this.peripheralUUID);
             bundle.putString(Peripheral.SERVICE_UUID,this.serviceUUID);

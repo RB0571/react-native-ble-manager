@@ -8,6 +8,7 @@ import android.bluetooth.le.ScanResult;
 import android.bluetooth.le.ScanSettings;
 import android.os.Build;
 import android.os.ParcelUuid;
+import android.util.Log;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -28,11 +29,13 @@ public class ScanerLollipop extends ScanerManager{
     private ScanCallback scanCallback = new ScanCallback() {
         @Override
         public void onScanResult(int callbackType, ScanResult result) {
+            Log.i(TAG,"ScanerLollipop ScanCallback");
             callback.onResult(result.getDevice(),result.getRssi(),result.getScanRecord().getBytes());
         }
     };
     @Override
     public void startScan(List<String> serviceUUIDs, Map<String,Integer> options) {
+        Log.i(TAG,"ScanerLollipop startScan");
         ScanSettings.Builder scanSettingsBuilder = new ScanSettings.Builder();
         List<ScanFilter> filters = new ArrayList<>();
 

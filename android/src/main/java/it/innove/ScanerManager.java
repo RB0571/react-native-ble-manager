@@ -13,6 +13,7 @@ import java.util.Map;
  */
 
 public abstract class ScanerManager {
+    protected static final String TAG = "BleManager";
     public interface IScaner {
         void onResult(BluetoothDevice device, int advertisingRSSI, byte[] scanRecord);
     }

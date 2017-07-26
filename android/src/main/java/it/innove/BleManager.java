@@ -39,7 +39,7 @@ import static it.innove.CallBackManager.*;
 
 class BleManager extends ReactContextBaseJavaModule implements ActivityEventListener {
 
-	public static final String LOG_TAG = "logs";
+	public static final String TAG = "BleManager";
 	private static final int ENABLE_REQUEST = 539;
 
 
@@ -71,13 +71,15 @@ class BleManager extends ReactContextBaseJavaModule implements ActivityEventList
 		this.reactContext = reactContext;
 		bleEvent = new BLEEvent(reactContext);
 		reactContext.addActivityEventListener(this);
-		Log.d(LOG_TAG, "BleManager created");
+		Log.d(TAG, "BleManager created");
 		new PeripheralJson(context).clear();
+		startService();
+	}
+	private void startService(){
 		Intent intent = new Intent(context,BackgroundService.class);
 		context.startService(intent);
 		context.bindService(intent,conn, Service.BIND_AUTO_CREATE);
 	}
-
 	@Override
 	public String getName() {
 		return "BleManager";
@@ -90,7 +92,7 @@ class BleManager extends ReactContextBaseJavaModule implements ActivityEventList
 	private final BroadcastReceiver mReceiver = new BroadcastReceiver() {
 		@Override
 		public void onReceive(Context context, Intent intent) {
-			Log.d(LOG_TAG, "onReceive");
+			Log.d(TAG, "onReceive");
 			final String action = intent.getAction();
 
 			String stringState = "";
@@ -114,14 +116,14 @@ class BleManager extends ReactContextBaseJavaModule implements ActivityEventList
 
 			WritableMap map = Arguments.createMap();
 			map.putString("state", stringState);
-			Log.d(LOG_TAG, "state: " + stringState);
+			Log.d(TAG, "state: " + stringState);
 			bleEvent.sendEvent(BLEEvent.EVENT_BLEMANAGER_DID_UPDATE_STATE, map);
 		}
 	};
 
 	@Override
 	public void onActivityResult(Activity activity, int requestCode, int resultCode, Intent data) {
-		Log.d(LOG_TAG, "onActivityResult");
+		Log.d(TAG, "onActivityResult");
 		if (requestCode == ENABLE_REQUEST && enableBluetoothCallback != null) {
 			if (resultCode == RESULT_OK) {
 				enableBluetoothCallback.invoke();
@@ -146,9 +148,9 @@ class BleManager extends ReactContextBaseJavaModule implements ActivityEventList
 
 	@ReactMethod
 	public void start(ReadableMap options, Callback callback) {
-		Log.d(LOG_TAG, "start");
+		Log.d(TAG, "start");
 		if (getBluetoothAdapter() == null) {
-			Log.d(LOG_TAG, "No bluetooth support");
+			Log.d(TAG, "No bluetooth support");
 			callback.invoke("No bluetooth support");
 			return;
 		}
@@ -163,14 +165,14 @@ class BleManager extends ReactContextBaseJavaModule implements ActivityEventList
 		IntentFilter filter = new IntentFilter(BluetoothAdapter.ACTION_STATE_CHANGED);
 		context.registerReceiver(mReceiver, filter);
 		callback.invoke();
-		Log.d(LOG_TAG, "BleManager initialized");
+		Log.d(TAG, "BleManager initialized");
 
 	}
 
 	@ReactMethod
 	public void enableBluetooth(Callback callback) {
 		if (getBluetoothAdapter() == null) {
-			Log.d(LOG_TAG, "No bluetooth support");
+			Log.d(TAG, "No bluetooth support");
 			callback.invoke("No bluetooth support");
 			return;
 		}
@@ -189,7 +191,7 @@ class BleManager extends ReactContextBaseJavaModule implements ActivityEventList
 	// 未完成，需要完善peripheral中的Writable相关功能
 	@ReactMethod
 	public void scan(ReadableArray serviceUUIDs, final int scanSeconds, boolean allowDuplicates, ReadableMap options, final Callback callback) {
-		Log.d(LOG_TAG, "scan");
+		Log.d(TAG, "BleManager scan");
 
 		List<String> services = new ArrayList<String>();
 		for (int i=0;i<serviceUUIDs.size();i++){
@@ -203,18 +205,21 @@ class BleManager extends ReactContextBaseJavaModule implements ActivityEventList
 		bleBinder.startScan(services,scanSeconds,optionsMap,new Scaner(){
 			@Override
 			public void onFinded(Peripheral peripheral) {
+				Log.i(TAG,"BleManager scan : onFinded ");
 				WritableMap map = peripheral.asWritableMap();
 				bleEvent.sendEvent(BLEEvent.EVENT_BLEMANAGER_DISCOVER_PERIPHERAL,map);
 			}
 
 			@Override
 			public void onStop() {
+				Log.i(TAG,"BleManager scan : onStop ");
 				WritableMap map = Arguments.createMap();
 				bleEvent.sendEvent(BLEEvent.EVENT_BLEMANAGER_STOP_SCAN,map);
 			}
 
 			@Override
 			public void onResult(String text) {
+				Log.i(TAG,"BleManager scan : onresult = "+text);
 				if(text == null){
 					callback.invoke();
 				}else {
@@ -228,7 +233,7 @@ class BleManager extends ReactContextBaseJavaModule implements ActivityEventList
 	// 未完成，需要完善peripheral中的Writable相关功能
 	@ReactMethod
 	public void stopScan(final Callback callback) {
-		Log.d(LOG_TAG, "Stop scan");
+		Log.d(TAG, "Stop scan");
 
 		//scanManager.stopScan(callback);
 		bleBinder.stopScan(new Scaner() {
@@ -257,13 +262,13 @@ class BleManager extends ReactContextBaseJavaModule implements ActivityEventList
 
 	@ReactMethod
 	public void connect(String peripheralUUID, final Callback callback) {
-		Log.d(LOG_TAG, "Connect to: " + peripheralUUID );
+		Log.d(TAG, "Connect to: " + peripheralUUID );
 		bleBinder.connect(getCurrentActivity(),peripheralUUID, new PeripheralConnect() {
 			@Override
 			public void onConnect(BluetoothDevice device) {
 				WritableMap map = Arguments.createMap();
 				map.putString("peripheral", device.getAddress());
-				Log.d(LOG_TAG, "Peripheral event ("+ BLEEvent.EVENT_BLEMANAGER_CONNECT_PERIPHERAL +"):" + device.getAddress());
+				Log.d(TAG, "Peripheral event ("+ BLEEvent.EVENT_BLEMANAGER_CONNECT_PERIPHERAL +"):" + device.getAddress());
 				bleEvent.sendEvent(BLEEvent.EVENT_BLEMANAGER_DISCONNECT_PERIPHERAL,map);
 			}
 
@@ -271,7 +276,7 @@ class BleManager extends ReactContextBaseJavaModule implements ActivityEventList
 			public void onDisconnect(BluetoothDevice device) {
 				WritableMap map = Arguments.createMap();
 				map.putString("peripheral", device.getAddress());
-				Log.d(LOG_TAG, "Peripheral event ("+ BLEEvent.EVENT_BLEMANAGER_DISCONNECT_PERIPHERAL +"):" + device.getAddress());
+				Log.d(TAG, "Peripheral event ("+ BLEEvent.EVENT_BLEMANAGER_DISCONNECT_PERIPHERAL +"):" + device.getAddress());
 				bleEvent.sendEvent(BLEEvent.EVENT_BLEMANAGER_DISCONNECT_PERIPHERAL,map);
 			}
 
@@ -289,7 +294,7 @@ class BleManager extends ReactContextBaseJavaModule implements ActivityEventList
 
 	@ReactMethod
 	public void disconnect(String peripheralUUID, final Callback callback) {
-		Log.d(LOG_TAG, "Disconnect from: " + peripheralUUID);
+		Log.d(TAG, "Disconnect from: " + peripheralUUID);
 		bleBinder.disconnect(peripheralUUID,new PeripheralConnect(){
 			@Override
 			public void onConnect(BluetoothDevice device) {
@@ -315,7 +320,7 @@ class BleManager extends ReactContextBaseJavaModule implements ActivityEventList
 	// 未完成，需要完善peripheral中的Writable相关功能
 	@ReactMethod
 	public void retrieveServices(String deviceUUID, final Callback callback) {
-		Log.d(LOG_TAG, "Retrieve services from: " + deviceUUID);
+		Log.d(TAG, "Retrieve services from: " + deviceUUID);
 
 		bleBinder.retrieveServices(deviceUUID,new RetrieveServices(){
 			@Override
@@ -339,7 +344,7 @@ class BleManager extends ReactContextBaseJavaModule implements ActivityEventList
 
 	@ReactMethod
 	public void getDiscoveredPeripherals(Callback callback) {
-		Log.d(LOG_TAG, "Get discovered peripherals");
+		Log.d(TAG, "Get discovered peripherals");
 		WritableArray map = Arguments.createArray();
 		Map<String, Peripheral> peripherals = bleBinder.getPeripherals();
 		Map <String, Peripheral> peripheralsCopy = new LinkedHashMap<>(peripherals);
@@ -353,7 +358,7 @@ class BleManager extends ReactContextBaseJavaModule implements ActivityEventList
 
 	@ReactMethod
 	public void getConnectedPeripherals(ReadableArray serviceUUIDs, Callback callback) {
-		Log.d(LOG_TAG, "Get connected peripherals");
+		Log.d(TAG, "Get connected peripherals");
 		WritableArray map = Arguments.createArray();
 		Map<String, Peripheral> peripherals = bleBinder.getPeripherals();
 		Map <String, Peripheral> peripheralsCopy = new LinkedHashMap<>(peripherals);
@@ -379,7 +384,7 @@ class BleManager extends ReactContextBaseJavaModule implements ActivityEventList
 
 	@ReactMethod
 	public void write(String deviceUUID, String serviceUUID, String characteristicUUID, ReadableArray message, Integer maxByteSize, final Callback callback) {
-		Log.d(LOG_TAG, "Write to: " + deviceUUID);
+		Log.d(TAG, "Write to: " + deviceUUID);
 		bleBinder.write(deviceUUID, serviceUUID, characteristicUUID, message, maxByteSize, new PeripheralWrite() {
 			@Override
 			public void onResult(String text) {
@@ -390,7 +395,7 @@ class BleManager extends ReactContextBaseJavaModule implements ActivityEventList
 
 	@ReactMethod
 	public void writeWithoutResponse(String deviceUUID, String serviceUUID, String characteristicUUID, ReadableArray message, Integer maxByteSize, Integer queueSleepTime, final Callback callback) {
-		Log.d(LOG_TAG, "Write without response to: " + deviceUUID);
+		Log.d(TAG, "Write without response to: " + deviceUUID);
 
 		bleBinder.writeWithoutResponse(deviceUUID, serviceUUID, characteristicUUID, message, maxByteSize, queueSleepTime, new PeripheralWrite() {
 			@Override
@@ -403,7 +408,7 @@ class BleManager extends ReactContextBaseJavaModule implements ActivityEventList
 
 	@ReactMethod
 	public void read(String deviceUUID, String serviceUUID, String characteristicUUID, final Callback callback) {
-		Log.d(LOG_TAG, "Read from: " + deviceUUID);
+		Log.d(TAG, "Read from: " + deviceUUID);
 		bleBinder.read(deviceUUID, serviceUUID, characteristicUUID, new PeripheralRead() {
 			@Override
 			public void onSuccessed(byte[] value) {
@@ -419,7 +424,7 @@ class BleManager extends ReactContextBaseJavaModule implements ActivityEventList
 
 	@ReactMethod
 	public void readRSSI(String deviceUUID, final Callback callback) {
-		Log.d(LOG_TAG, "Read RSSI from: " + deviceUUID);
+		Log.d(TAG, "Read RSSI from: " + deviceUUID);
 
 		bleBinder.readRssi(deviceUUID, new PeripheralRssiRead() {
 			@Override
@@ -437,7 +442,7 @@ class BleManager extends ReactContextBaseJavaModule implements ActivityEventList
 
 	@ReactMethod
 	public void startNotification(String deviceUUID, String serviceUUID, String characteristicUUID, final Callback callback) {
-		Log.d(LOG_TAG, "startNotification");
+		Log.d(TAG, "startNotification");
 
 		// ca58320fd9fcf00dc426 FFE0 FFE1
 		bleBinder.startNotification(deviceUUID, serviceUUID, characteristicUUID, new CallBackManager.PeripheralNotification() {
@@ -461,7 +466,7 @@ class BleManager extends ReactContextBaseJavaModule implements ActivityEventList
 
 	@ReactMethod
 	public void stopNotification(String deviceUUID, String serviceUUID, String characteristicUUID, final Callback callback) {
-		Log.d(LOG_TAG, "stopNotification");
+		Log.d(TAG, "stopNotification");
 
 		bleBinder.stopNotification(deviceUUID, serviceUUID, characteristicUUID, new CallBackManager.PeripheralNotification() {
 			@Override
