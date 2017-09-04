@@ -282,11 +282,13 @@ class BleManager extends ReactContextBaseJavaModule implements ActivityEventList
 
 			@Override
 			public void onResult(String text) {
+				/*
 				if(text == null){
 					callback.invoke();
 				}else {
 					callback.invoke(text);
 				}
+				*/
 			}
 		});
 
@@ -308,11 +310,13 @@ class BleManager extends ReactContextBaseJavaModule implements ActivityEventList
 
 			@Override
 			public void onResult(String text) {
+				/*
 				if(text == null){
 					callback.invoke();
 				}else {
 					callback.invoke(text);
 				}
+				*/
 			}
 		});
 
