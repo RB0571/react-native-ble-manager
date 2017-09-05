@@ -269,7 +269,7 @@ class BleManager extends ReactContextBaseJavaModule implements ActivityEventList
 				WritableMap map = Arguments.createMap();
 				map.putString("peripheral", device.getAddress());
 				Log.d(TAG, "Peripheral event ("+ BLEEvent.EVENT_BLEMANAGER_CONNECT_PERIPHERAL +"):" + device.getAddress());
-				bleEvent.sendEvent(BLEEvent.EVENT_BLEMANAGER_DISCONNECT_PERIPHERAL,map);
+				bleEvent.sendEvent(BLEEvent.EVENT_BLEMANAGER_CONNECT_PERIPHERAL,map);
 			}
 
 			@Override
@@ -282,13 +282,13 @@ class BleManager extends ReactContextBaseJavaModule implements ActivityEventList
 
 			@Override
 			public void onResult(String text) {
-				/*
+				
 				if(text == null){
 					callback.invoke();
 				}else {
 					callback.invoke(text);
 				}
-				*/
+				
 			}
 		});
 
@@ -310,13 +310,13 @@ class BleManager extends ReactContextBaseJavaModule implements ActivityEventList
 
 			@Override
 			public void onResult(String text) {
-				/*
+				
 				if(text == null){
 					callback.invoke();
 				}else {
 					callback.invoke(text);
 				}
-				*/
+				
 			}
 		});
 

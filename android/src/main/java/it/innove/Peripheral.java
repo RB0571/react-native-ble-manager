@@ -72,8 +72,8 @@ public class Peripheral extends BluetoothGattCallback {
 		if (newState == BluetoothGatt.STATE_CONNECTED) {
 			connected = true;
 			if (peripheralConnect != null) {
-				Log.d(LOG_TAG, "Connected to: " + device.getAddress());
-				peripheralConnect.onResult(null);
+				Log.d(LOG_TAG, "Native Connected to: " + device.getAddress());
+				//peripheralConnect.onResult(null);
 				peripheralConnect.onConnect(device);
 				//peripheralConnect = null;
 			}
@@ -87,7 +87,7 @@ public class Peripheral extends BluetoothGattCallback {
 				}
 			}
 			if (peripheralConnect != null) {
-				peripheralConnect.onResult("Connection error");
+				//peripheralConnect.onResult("Connection error");
 				peripheralConnect.onDisconnect(device);
 				peripheralConnect = null;
 			}
