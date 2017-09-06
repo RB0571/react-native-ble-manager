@@ -49,11 +49,11 @@ class BleManager  {
       maxByteSize = 20;
     }
     return new Promise((fulfill, reject) => {
-      bleManager.write(peripheralId, serviceUUID, characteristicUUID, data, maxByteSize, (error) => {
+      bleManager.write(peripheralId, serviceUUID, characteristicUUID, data, maxByteSize, (error, response) => {
         if (error) {
           reject(error);
         } else {
-          fulfill();
+          fulfill(response);
         }
       });
     });

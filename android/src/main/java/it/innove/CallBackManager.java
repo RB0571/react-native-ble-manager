@@ -40,7 +40,8 @@ public class CallBackManager {
         void onFailed(String text);
     }
     public interface PeripheralWrite {
-        void onResult(String text);
+        void onSuccessed(byte[] result);
+        void onFailed(String text);
     }
     public abstract static class PeripheralNotification implements Parcelable{
         public String peripheralUUID;

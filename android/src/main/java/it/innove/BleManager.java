@@ -391,8 +391,15 @@ class BleManager extends ReactContextBaseJavaModule implements ActivityEventList
 		Log.d(TAG, "Write to: " + deviceUUID);
 		bleBinder.write(deviceUUID, serviceUUID, characteristicUUID, message, maxByteSize, new PeripheralWrite() {
 			@Override
-			public void onResult(String text) {
-				callback.invoke(text);
+			public void onSuccessed(byte[] value) {
+				Log.i("Peripheral", "Peripheral onCharacteristicWrite : value = "+new String(value));
+
+				callback.invoke(null,bytesToWritableArray(value));
+			}
+
+			@Override
+			public void onFailed(String text) {
+				callback.invoke(text,null);
 			}
 		});
 	}
@@ -403,8 +410,13 @@ class BleManager extends ReactContextBaseJavaModule implements ActivityEventList
 
 		bleBinder.writeWithoutResponse(deviceUUID, serviceUUID, characteristicUUID, message, maxByteSize, queueSleepTime, new PeripheralWrite() {
 			@Override
-			public void onResult(String text) {
-				callback.invoke(text);
+			public void onSuccessed(byte[] result) {
+				//callback.invoke(null,result);
+			}
+
+			@Override
+			public void onFailed(String text) {
+				callback.invoke(text,null);
 			}
 		});
 	}

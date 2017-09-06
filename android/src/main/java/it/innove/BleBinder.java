@@ -29,7 +29,7 @@ import static android.os.Build.VERSION_CODES.LOLLIPOP;
  */
 
 public class BleBinder extends Binder {
-    private static final String TAG = "BleManager";
+    private static final String TAG = "BleBinder";
     private PeripheralJson peripheralJson;
     private BluetoothAdapter bluetoothAdapter;
     private ScanerManager scanerManager;
@@ -345,7 +345,7 @@ public class BleBinder extends Binder {
             }
             peripheral.write(UUIDHelper.uuidFromString(serviceUUID), UUIDHelper.uuidFromString(characteristicUUID), decoded, maxByteSize, null, writeCallback, BluetoothGattCharacteristic.WRITE_TYPE_DEFAULT);
         } else
-            writeCallback.onResult("Peripheral not found");
+            writeCallback.onFailed("Peripheral not found");
     }
 
     public void writeWithoutResponse(String deviceUUID, String serviceUUID, String characteristicUUID, ReadableArray message, Integer maxByteSize, Integer queueSleepTime,CallBackManager.PeripheralWrite writeCallback){
@@ -357,6 +357,6 @@ public class BleBinder extends Binder {
             }
             peripheral.write(UUIDHelper.uuidFromString(serviceUUID), UUIDHelper.uuidFromString(characteristicUUID), decoded, maxByteSize, queueSleepTime, writeCallback, BluetoothGattCharacteristic.WRITE_TYPE_NO_RESPONSE);
         } else
-            writeCallback.onResult("Peripheral not found");
+            writeCallback.onFailed("Peripheral not found");
     }
 }
