@@ -97,10 +97,9 @@ public class BackgroundService extends Service {
         int counter = 0;
 
         Log.i(TAG," service  = > onStartCommand : conter = "+counter);
-
         if(intent == null){
             isBackgroud = true;
-            start();
+            //start();
         } else {
             isBackgroud = false;
             //binder.disconnect(peripheralUUID,null);
